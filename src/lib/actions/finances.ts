@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getServerClient } from '@/lib/auth'
 import { FINANCE_LINK_KIND_META } from '@/lib/constants/finance'
 import type {
   FinancialEntry,
@@ -31,10 +31,7 @@ export async function getFinances(month?: string): Promise<{
   totalExpenses: number
   balance: number
 }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) {
     return { entries: [], totalIncome: 0, totalExpenses: 0, balance: 0 }
@@ -80,10 +77,7 @@ export async function createFinancialEntry(formData: {
   description?: string
   date: string
 }): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return { error: 'Nao autenticado' }
 
@@ -100,10 +94,7 @@ export async function createFinancialEntry(formData: {
 }
 
 export async function deleteFinancialEntry(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return { error: 'Nao autenticado' }
 
@@ -121,10 +112,7 @@ export async function deleteFinancialEntry(id: string): Promise<{ error?: string
 }
 
 export async function getFinanceLinks(): Promise<FinanceLink[]> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return []
 
@@ -149,10 +137,7 @@ export async function createFinanceLink(formData: {
   kind: FinanceLinkKind
   notes?: string
 }): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return { error: 'Nao autenticado' }
   if (!isFinanceLinkKind(formData.kind)) return { error: 'Tipo de acesso invalido' }
@@ -176,10 +161,7 @@ export async function createFinanceLink(formData: {
 }
 
 export async function deleteFinanceLink(id: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return { error: 'Nao autenticado' }
 

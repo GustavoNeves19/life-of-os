@@ -1,9 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
-import { ArrowLeft, Calendar, Flag } from 'lucide-react'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft, Calendar, Flag } from 'lucide-react'
 import { SubtaskList } from '@/components/tasks/SubtaskList'
 import { TaskStatusSelect } from '@/components/tasks/TaskStatusSelect'
+import { getCurrentUser, getServerClient } from '@/lib/auth'
 import { cn, formatDate, isOverdue } from '@/lib/utils'
 import type { Task } from '@/types'
 
@@ -14,7 +14,7 @@ interface Props {
 const priorityConfig = {
   high: { label: 'Alta', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30' },
   medium: {
-    label: 'Média',
+    label: 'Media',
     color: 'text-amber-500',
     bg: 'bg-amber-50 dark:bg-amber-950/30',
   },
@@ -22,10 +22,7 @@ const priorityConfig = {
 } as const
 
 export default async function TaskDetailPage({ params }: Props) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [user, supabase] = await Promise.all([getCurrentUser(), getServerClient()])
 
   if (!user) redirect('/auth/login')
 
@@ -60,7 +57,7 @@ export default async function TaskDetailPage({ params }: Props) {
           <h1
             className={cn(
               'flex-1 text-xl font-bold leading-snug text-zinc-900 dark:text-zinc-50',
-              taskData.status === 'done' && 'line-through text-zinc-400 dark:text-zinc-500'
+              taskData.status === 'done' && 'text-zinc-400 line-through dark:text-zinc-500'
             )}
           >
             {taskData.title}
@@ -91,7 +88,7 @@ export default async function TaskDetailPage({ params }: Props) {
             )}
           >
             <Calendar size={11} />
-            {overdue ? 'Atrasada · ' : ''}
+            {overdue ? 'Atrasada . ' : ''}
             {formatDate(taskData.due_date)}
           </span>
         )}
@@ -113,7 +110,7 @@ export default async function TaskDetailPage({ params }: Props) {
       {taskData.description && (
         <div className="rounded-2xl border border-zinc-100 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-            Descrição
+            Descricao
           </p>
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
             {taskData.description}

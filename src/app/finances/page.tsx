@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getFinanceLinks, getFinances } from '@/lib/actions/finances'
 import { FinanceLinksPanel } from '@/components/finances/FinanceLinksPanel'
 import { FinancesList } from '@/components/finances/FinancesList'
 import { FinanceSummary } from '@/components/finances/FinanceSummary'
 import { MonthPicker } from '@/components/finances/MonthPicker'
+import { getCurrentUser } from '@/lib/auth'
+import { getFinanceLinks, getFinances } from '@/lib/actions/finances'
 import { currentMonth, monthLabel } from '@/lib/utils'
 
 interface Props {
@@ -12,10 +12,7 @@ interface Props {
 }
 
 export default async function FinancesPage({ searchParams }: Props) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) redirect('/auth/login')
 

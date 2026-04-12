@@ -1,27 +1,28 @@
 {
   "name": "Life OS Pessoal",
   "short_name": "Life OS",
-  "description": "Seu sistema pessoal de organização de vida",
+  "description": "Seu sistema pessoal de organizacao de vida.",
+  "lang": "pt-BR",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#7c3aed",
+  "background_color": "#fafafa",
+  "theme_color": "#fafafa",
   "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["productivity", "lifestyle"],
-  "screenshots": [],
+  "categories": ["productivity", "finance", "lifestyle"],
   "prefer_related_applications": false
 }

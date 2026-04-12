@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getTodayTasks } from '@/lib/actions/tasks'
-import { getGoals } from '@/lib/actions/goals-areas'
-import { getFinances } from '@/lib/actions/finances'
-import { TaskCard } from '@/components/tasks/TaskCard'
-import { TrendingUp, TrendingDown, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { ArrowRight, TrendingDown, TrendingUp } from 'lucide-react'
+import { TaskCard } from '@/components/tasks/TaskCard'
+import { getCurrentUser } from '@/lib/auth'
+import { getFinances } from '@/lib/actions/finances'
+import { getGoals } from '@/lib/actions/goals-areas'
+import { getTodayTasks } from '@/lib/actions/tasks'
 import { cn } from '@/lib/utils'
 
 function greeting() {
@@ -23,10 +23,7 @@ function formatCurrency(value: number) {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUser()
 
   if (!user) redirect('/auth/login')
 
@@ -34,7 +31,7 @@ export default async function DashboardPage() {
     typeof user.user_metadata?.full_name === 'string'
       ? user.user_metadata.full_name.trim()
       : ''
-  const fallbackName = user.email?.split('@')[0] ?? 'você'
+  const fallbackName = user.email?.split('@')[0] ?? 'voce'
   const firstName = (metadataName || fallbackName).split(/\s+/)[0]
 
   const [todayTasks, goals, finances] = await Promise.all([
@@ -55,7 +52,7 @@ export default async function DashboardPage() {
       <div className="pt-2">
         <p className="text-sm capitalize text-zinc-400 dark:text-zinc-500">{today}</p>
         <h1 className="mt-0.5 text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          {greeting()}, {firstName} 👋
+          {greeting()}, {firstName}
         </h1>
       </div>
 
@@ -104,7 +101,7 @@ export default async function DashboardPage() {
                 : 'text-red-500 dark:text-red-400'
             )}
           >
-            saldo mês
+            saldo do mes
           </p>
         </div>
       </div>

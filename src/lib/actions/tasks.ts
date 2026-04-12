@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentUser, getServerClient } from '@/lib/auth'
 import { localDateString } from '@/lib/utils'
 import type { Priority, Subtask, Task, TaskStatus } from '@/types'
 
@@ -10,10 +10,7 @@ export async function getTasks(filters?: {
   area_id?: string
   priority?: Priority
 }): Promise<Task[]> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return []
 
@@ -38,10 +35,7 @@ export async function getTasks(filters?: {
 }
 
 export async function getTodayTasks(): Promise<Task[]> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
   if (!user) return []
 
@@ -71,12 +65,9 @@ export async function createTask(formData: {
   priority: Priority
   due_date?: string
 }): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
-  if (!user) return { error: 'Não autenticado' }
+  if (!user) return { error: 'Nao autenticado' }
 
   const { error } = await supabase.from('tasks').insert({
     ...formData,
@@ -101,12 +92,9 @@ export async function updateTaskStatus(
   taskId: string,
   status: TaskStatus
 ): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
-  if (!user) return { error: 'Não autenticado' }
+  if (!user) return { error: 'Nao autenticado' }
 
   const { data: existingTask } = await supabase
     .from('tasks')
@@ -136,12 +124,9 @@ export async function updateTaskStatus(
 }
 
 export async function deleteTask(taskId: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
-  if (!user) return { error: 'Não autenticado' }
+  if (!user) return { error: 'Nao autenticado' }
 
   const { data: existingTask } = await supabase
     .from('tasks')
@@ -173,12 +158,9 @@ export async function createSubtask(
   taskId: string,
   title: string
 ): Promise<{ data?: Subtask; error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
-  if (!user) return { error: 'Não autenticado' }
+  if (!user) return { error: 'Nao autenticado' }
 
   const { data: task } = await supabase
     .from('tasks')
@@ -187,7 +169,7 @@ export async function createSubtask(
     .eq('user_id', user.id)
     .single()
 
-  if (!task) return { error: 'Tarefa não encontrada' }
+  if (!task) return { error: 'Tarefa nao encontrada' }
 
   const { data, error } = await supabase
     .from('subtasks')
@@ -204,12 +186,9 @@ export async function createSubtask(
 }
 
 export async function deleteSubtask(subtaskId: string): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
-  if (!user) return { error: 'Não autenticado' }
+  if (!user) return { error: 'Nao autenticado' }
 
   const { data: subtask } = await supabase
     .from('subtasks')
@@ -218,7 +197,7 @@ export async function deleteSubtask(subtaskId: string): Promise<{ error?: string
     .eq('tasks.user_id', user.id)
     .single()
 
-  if (!subtask) return { error: 'Subtarefa não encontrada' }
+  if (!subtask) return { error: 'Subtarefa nao encontrada' }
 
   const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId)
 
@@ -234,12 +213,9 @@ export async function toggleSubtask(
   subtaskId: string,
   completed: boolean
 ): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
 
-  if (!user) return { error: 'Não autenticado' }
+  if (!user) return { error: 'Nao autenticado' }
 
   const { data: subtask } = await supabase
     .from('subtasks')
@@ -248,7 +224,7 @@ export async function toggleSubtask(
     .eq('tasks.user_id', user.id)
     .single()
 
-  if (!subtask) return { error: 'Subtarefa não encontrada' }
+  if (!subtask) return { error: 'Subtarefa nao encontrada' }
 
   const { error } = await supabase
     .from('subtasks')

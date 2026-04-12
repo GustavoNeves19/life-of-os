@@ -1,14 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
-import type { Goal, LifeArea, GoalTimeframe, TaskStatus } from '@/types'
-
-// ─── Goals ───────────────────────────────────────────────────
+import { getCurrentUser, getServerClient } from '@/lib/auth'
+import type { Goal, GoalTimeframe, LifeArea, TaskStatus } from '@/types'
 
 export async function getGoals(): Promise<Goal[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
   if (!user) return []
 
   const { data, error } = await supabase
@@ -27,9 +24,8 @@ export async function createGoal(formData: {
   area_id?: string
   target_date?: string
 }): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Não autenticado' }
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
+  if (!user) return { error: 'Nao autenticado' }
 
   const { error } = await supabase.from('goals').insert({
     ...formData,
@@ -49,9 +45,8 @@ export async function updateGoalProgress(
   goalId: string,
   progress: number
 ): Promise<{ error?: string }> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: 'Não autenticado' }
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
+  if (!user) return { error: 'Nao autenticado' }
 
   const status: TaskStatus = progress >= 100 ? 'done' : 'in_progress'
 
@@ -68,11 +63,8 @@ export async function updateGoalProgress(
   return {}
 }
 
-// ─── Life Areas ───────────────────────────────────────────────
-
 export async function getAreas(): Promise<LifeArea[]> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
   if (!user) return []
 
   const { data, error } = await supabase
@@ -86,8 +78,7 @@ export async function getAreas(): Promise<LifeArea[]> {
 }
 
 export async function getAreaWithTasks(areaId: string) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
   if (!user) return null
 
   const [{ data: area }, { data: tasks }, { data: goals }] = await Promise.all([
@@ -103,11 +94,7 @@ export async function getAreaWithTasks(areaId: string) {
       .eq('area_id', areaId)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('goals')
-      .select('*')
-      .eq('area_id', areaId)
-      .eq('user_id', user.id),
+    supabase.from('goals').select('*').eq('area_id', areaId).eq('user_id', user.id),
   ])
 
   return { area, tasks: tasks ?? [], goals: goals ?? [] }
