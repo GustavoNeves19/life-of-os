@@ -63,6 +63,7 @@ export async function createTask(formData: {
   description?: string
   area_id?: string
   priority: Priority
+  status?: TaskStatus
   due_date?: string
 }): Promise<{ error?: string }> {
   const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
@@ -70,9 +71,13 @@ export async function createTask(formData: {
   if (!user) return { error: 'Nao autenticado' }
 
   const { error } = await supabase.from('tasks').insert({
-    ...formData,
+    title: formData.title.trim(),
+    description: formData.description?.trim() || null,
+    area_id: formData.area_id || null,
+    priority: formData.priority,
+    due_date: formData.due_date || null,
     user_id: user.id,
-    status: 'pending',
+    status: formData.status ?? 'pending',
   })
 
   if (error) return { error: error.message }
@@ -83,6 +88,61 @@ export async function createTask(formData: {
 
   if (formData.area_id) {
     revalidatePath(`/areas/${formData.area_id}`)
+  }
+
+  return {}
+}
+
+export async function updateTask(formData: {
+  taskId: string
+  title: string
+  description?: string
+  area_id?: string
+  priority: Priority
+  status: TaskStatus
+  due_date?: string
+}): Promise<{ error?: string }> {
+  const [supabase, user] = await Promise.all([getServerClient(), getCurrentUser()])
+
+  if (!user) return { error: 'Nao autenticado' }
+
+  const { data: existingTask } = await supabase
+    .from('tasks')
+    .select('area_id')
+    .eq('id', formData.taskId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!existingTask) return { error: 'Tarefa nao encontrada' }
+
+  const normalizedAreaId = formData.area_id || null
+
+  const { error } = await supabase
+    .from('tasks')
+    .update({
+      title: formData.title.trim(),
+      description: formData.description?.trim() || null,
+      area_id: normalizedAreaId,
+      priority: formData.priority,
+      status: formData.status,
+      due_date: formData.due_date || null,
+    })
+    .eq('id', formData.taskId)
+    .eq('user_id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath('/tasks')
+  revalidatePath('/areas')
+  revalidatePath(`/tasks/${formData.taskId}`)
+
+  if (existingTask.area_id) {
+    revalidatePath(`/areas/${existingTask.area_id}`)
+  }
+
+  if (normalizedAreaId && normalizedAreaId !== existingTask.area_id) {
+    revalidatePath(`/areas/${normalizedAreaId}`)
   }
 
   return {}

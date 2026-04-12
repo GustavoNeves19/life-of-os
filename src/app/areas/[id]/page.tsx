@@ -5,7 +5,7 @@ import { GoalCard } from '@/components/goals/GoalCard'
 import { NewTaskSheet } from '@/components/tasks/NewTaskSheet'
 import { TaskCard } from '@/components/tasks/TaskCard'
 import { getCurrentUser } from '@/lib/auth'
-import { getAreaWithTasks } from '@/lib/actions/goals-areas'
+import { getAreaWithTasks, getAreas } from '@/lib/actions/goals-areas'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -16,7 +16,7 @@ export default async function AreaDetailPage({ params }: Props) {
   if (!user) redirect('/auth/login')
 
   const { id } = await params
-  const data = await getAreaWithTasks(id)
+  const [data, areas] = await Promise.all([getAreaWithTasks(id), getAreas()])
   if (!data || !data.area) notFound()
 
   const { area, tasks, goals } = data
@@ -56,7 +56,12 @@ export default async function AreaDetailPage({ params }: Props) {
               </div>
             </div>
           </div>
-          <NewTaskSheet areaId={area.id} areaName={area.name} areaColor={area.color} />
+          <NewTaskSheet
+            areas={areas}
+            defaultAreaId={area.id}
+            areaName={area.name}
+            areaColor={area.color}
+          />
         </div>
       </div>
 

@@ -9,11 +9,15 @@ import {
 import { cn, localDateString } from '@/lib/utils'
 import { createTask } from '@/lib/actions/tasks'
 import { createFinancialEntry } from '@/lib/actions/finances'
-import type { FinanceType, Priority } from '@/types'
+import type { FinanceType, LifeArea, Priority, TaskStatus } from '@/types'
 
 type Mode = 'task' | 'finance'
 
-export function QuickAddFAB() {
+interface Props {
+  areas: LifeArea[]
+}
+
+export function QuickAddFAB({ areas }: Props) {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('task')
   const [loading, setLoading] = useState(false)
@@ -34,6 +38,8 @@ export function QuickAddFAB() {
     const result = await createTask({
       title: formData.get('title') as string,
       priority: formData.get('priority') as Priority,
+      status: formData.get('status') as TaskStatus,
+      area_id: (formData.get('area_id') as string) || undefined,
       due_date: (formData.get('due_date') as string) || undefined,
     })
 
@@ -153,6 +159,31 @@ export function QuickAddFAB() {
                     type="date"
                     className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   />
+                </div>
+
+                <div className="flex gap-2">
+                  <select
+                    name="status"
+                    defaultValue="pending"
+                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                  >
+                    <option value="pending">Pendente</option>
+                    <option value="in_progress">Em andamento</option>
+                    <option value="done">Concluida</option>
+                  </select>
+
+                  <select
+                    name="area_id"
+                    defaultValue=""
+                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                  >
+                    <option value="">Sem area</option>
+                    {areas.map((area) => (
+                      <option key={area.id} value={area.id}>
+                        {area.icon} {area.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {error && (

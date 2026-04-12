@@ -5,6 +5,7 @@ import './globals.css'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { PWARegister } from '@/components/layout/PWARegister'
 import { QuickAddFAB } from '@/components/layout/QuickAddFAB'
+import { getAreas } from '@/lib/actions/goals-areas'
 import { getCurrentUser } from '@/lib/auth'
 
 export const metadata: Metadata = {
@@ -47,6 +48,7 @@ export default async function RootLayout({
 }) {
   const user = await getCurrentUser()
   const isAuthed = Boolean(user)
+  const areas = isAuthed ? await getAreas() : []
 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
@@ -61,7 +63,7 @@ export default async function RootLayout({
           {isAuthed && (
             <>
               <BottomNav />
-              <QuickAddFAB />
+              <QuickAddFAB areas={areas} />
             </>
           )}
         </div>

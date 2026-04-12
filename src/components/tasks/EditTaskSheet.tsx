@@ -1,18 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X } from 'lucide-react'
-import { createTask } from '@/lib/actions/tasks'
-import type { LifeArea, Priority, TaskStatus } from '@/types'
+import { Pencil, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { updateTask } from '@/lib/actions/tasks'
+import type { LifeArea, Priority, Task, TaskStatus } from '@/types'
 
 interface Props {
+  task: Task
   areas: LifeArea[]
-  defaultAreaId?: string
-  areaName?: string
-  areaColor: string
 }
 
-export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Props) {
+export function EditTaskSheet({ task, areas }: Props) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -23,13 +23,14 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
     setError('')
 
     const fd = new FormData(e.currentTarget)
-    const result = await createTask({
+    const result = await updateTask({
+      taskId: task.id,
       title: fd.get('title') as string,
       description: (fd.get('description') as string) || undefined,
+      area_id: (fd.get('area_id') as string) || undefined,
       priority: fd.get('priority') as Priority,
       status: fd.get('status') as TaskStatus,
       due_date: (fd.get('due_date') as string) || undefined,
-      area_id: (fd.get('area_id') as string) || undefined,
     })
 
     setLoading(false)
@@ -40,16 +41,17 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
     }
 
     setOpen(false)
+    router.refresh()
   }
 
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white transition-colors shadow-sm"
-        style={{ backgroundColor: areaColor }}
+        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
       >
-        <Plus size={14} strokeWidth={2.5} /> Nova tarefa
+        <Pencil size={13} />
+        Editar
       </button>
 
       {open && (
@@ -64,13 +66,11 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-50">
-                  Nova tarefa
+                  Editar tarefa
                 </h3>
-                {areaName && (
-                  <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
-                    sugestao inicial em {areaName}
-                  </p>
-                )}
+                <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+                  Atualize area, status e detalhes
+                </p>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -88,9 +88,8 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
                 <input
                   name="title"
                   required
-                  autoFocus
-                  placeholder="O que precisa ser feito?"
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800 dark:placeholder:text-zinc-600"
+                  defaultValue={task.title}
+                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                 />
               </div>
 
@@ -100,9 +99,9 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
                 </label>
                 <textarea
                   name="description"
-                  rows={2}
-                  placeholder="Detalhes opcionais..."
-                  className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800 dark:placeholder:text-zinc-600"
+                  rows={3}
+                  defaultValue={task.description ?? ''}
+                  className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                 />
               </div>
 
@@ -112,7 +111,7 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
                 </label>
                 <select
                   name="area_id"
-                  defaultValue={defaultAreaId ?? ''}
+                  defaultValue={task.area_id ?? ''}
                   className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                 >
                   <option value="">Sem area especifica</option>
@@ -131,7 +130,7 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
                   </label>
                   <select
                     name="priority"
-                    defaultValue="medium"
+                    defaultValue={task.priority}
                     className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   >
                     <option value="low">Baixa</option>
@@ -146,7 +145,7 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
                   </label>
                   <select
                     name="status"
-                    defaultValue="pending"
+                    defaultValue={task.status}
                     className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   >
                     <option value="pending">Pendente</option>
@@ -163,6 +162,7 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
                 <input
                   name="due_date"
                   type="date"
+                  defaultValue={task.due_date ?? ''}
                   className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                 />
               </div>
@@ -176,10 +176,9 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-colors disabled:opacity-50"
-                style={{ backgroundColor: areaColor }}
+                className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
               >
-                {loading ? 'Salvando...' : 'Criar tarefa'}
+                {loading ? 'Salvando...' : 'Salvar alteracoes'}
               </button>
             </form>
           </div>

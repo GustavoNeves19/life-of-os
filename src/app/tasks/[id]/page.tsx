@@ -1,9 +1,11 @@
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, Flag } from 'lucide-react'
+import { EditTaskSheet } from '@/components/tasks/EditTaskSheet'
 import { SubtaskList } from '@/components/tasks/SubtaskList'
 import { TaskStatusSelect } from '@/components/tasks/TaskStatusSelect'
 import { getCurrentUser, getServerClient } from '@/lib/auth'
+import { getAreas } from '@/lib/actions/goals-areas'
 import { cn, formatDate, isOverdue } from '@/lib/utils'
 import type { Task } from '@/types'
 
@@ -27,12 +29,15 @@ export default async function TaskDetailPage({ params }: Props) {
   if (!user) redirect('/auth/login')
 
   const { id } = await params
-  const { data: task, error } = await supabase
-    .from('tasks')
-    .select('*, area:life_areas(id, name, color, icon), subtasks(*)')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single()
+  const [{ data: task, error }, areas] = await Promise.all([
+    supabase
+      .from('tasks')
+      .select('*, area:life_areas(id, name, color, icon), subtasks(*)')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single(),
+    getAreas(),
+  ])
 
   if (error || !task) notFound()
 
@@ -62,7 +67,10 @@ export default async function TaskDetailPage({ params }: Props) {
           >
             {taskData.title}
           </h1>
-          <TaskStatusSelect taskId={taskData.id} current={taskData.status} />
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <EditTaskSheet task={taskData} areas={areas} />
+            <TaskStatusSelect taskId={taskData.id} current={taskData.status} />
+          </div>
         </div>
       </div>
 

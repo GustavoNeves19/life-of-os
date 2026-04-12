@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { Check, Clock, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
@@ -57,7 +58,7 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
       </button>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <Link href={`/tasks/${task.id}`} className="min-w-0 flex-1">
         <p className={cn(
           'text-sm font-medium text-zinc-800 dark:text-zinc-100 leading-snug',
           isDone && 'line-through text-zinc-400 dark:text-zinc-500'
@@ -72,13 +73,11 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
         )}
 
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          {/* Priority dot */}
           <span className="flex items-center gap-1">
             <span className={cn('w-1.5 h-1.5 rounded-full', p.dot)} />
             <span className={cn('text-[10px] font-medium', p.color)}>{p.label}</span>
           </span>
 
-          {/* Due date */}
           {task.due_date && (
             <span className="flex items-center gap-1 text-[10px] text-zinc-400 dark:text-zinc-500">
               <Clock size={10} />
@@ -88,7 +87,6 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
             </span>
           )}
 
-          {/* Area badge */}
           {task.area && (
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
@@ -101,14 +99,13 @@ export function TaskCard({ task, compact = false }: TaskCardProps) {
             </span>
           )}
 
-          {/* Subtasks progress */}
           {totalSubtasks > 0 && (
             <span className="text-[10px] text-zinc-400">
               {completedSubtasks}/{totalSubtasks} subtarefas
             </span>
           )}
         </div>
-      </div>
+      </Link>
 
       {/* Delete */}
       <button
