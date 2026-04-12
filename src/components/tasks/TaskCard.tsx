@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Clock, AlertCircle, Trash2 } from 'lucide-react'
+import { Check, Clock, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { updateTaskStatus, deleteTask } from '@/lib/actions/tasks'
 import type { Task } from '@/types'

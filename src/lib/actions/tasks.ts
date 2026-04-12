@@ -2,7 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import type { Task, Priority, TaskStatus } from '@/types'
+import { localDateString } from '@/lib/utils'
+import type { Priority, Subtask, Task, TaskStatus } from '@/types'
 
 export async function getTasks(filters?: {
   status?: TaskStatus
@@ -10,7 +11,10 @@ export async function getTasks(filters?: {
   priority?: Priority
 }): Promise<Task[]> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return []
 
   let query = supabase
@@ -24,16 +28,24 @@ export async function getTasks(filters?: {
   if (filters?.priority) query = query.eq('priority', filters.priority)
 
   const { data, error } = await query
-  if (error) { console.error(error); return [] }
+
+  if (error) {
+    console.error(error)
+    return []
+  }
+
   return (data as Task[]) ?? []
 }
 
 export async function getTodayTasks(): Promise<Task[]> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return []
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateString()
 
   const { data, error } = await supabase
     .from('tasks')
@@ -44,7 +56,11 @@ export async function getTodayTasks(): Promise<Task[]> {
     .order('priority', { ascending: false })
     .limit(10)
 
-  if (error) { console.error(error); return [] }
+  if (error) {
+    console.error(error)
+    return []
+  }
+
   return (data as Task[]) ?? []
 }
 
@@ -56,7 +72,10 @@ export async function createTask(formData: {
   due_date?: string
 }): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return { error: 'Não autenticado' }
 
   const { error } = await supabase.from('tasks').insert({
@@ -69,6 +88,12 @@ export async function createTask(formData: {
 
   revalidatePath('/dashboard')
   revalidatePath('/tasks')
+  revalidatePath('/areas')
+
+  if (formData.area_id) {
+    revalidatePath(`/areas/${formData.area_id}`)
+  }
+
   return {}
 }
 
@@ -77,8 +102,18 @@ export async function updateTaskStatus(
   status: TaskStatus
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return { error: 'Não autenticado' }
+
+  const { data: existingTask } = await supabase
+    .from('tasks')
+    .select('area_id')
+    .eq('id', taskId)
+    .eq('user_id', user.id)
+    .single()
 
   const { error } = await supabase
     .from('tasks')
@@ -90,13 +125,30 @@ export async function updateTaskStatus(
 
   revalidatePath('/dashboard')
   revalidatePath('/tasks')
+  revalidatePath(`/tasks/${taskId}`)
+  revalidatePath('/areas')
+
+  if (existingTask?.area_id) {
+    revalidatePath(`/areas/${existingTask.area_id}`)
+  }
+
   return {}
 }
 
 export async function deleteTask(taskId: string): Promise<{ error?: string }> {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (!user) return { error: 'Não autenticado' }
+
+  const { data: existingTask } = await supabase
+    .from('tasks')
+    .select('area_id')
+    .eq('id', taskId)
+    .eq('user_id', user.id)
+    .single()
 
   const { error } = await supabase
     .from('tasks')
@@ -108,6 +160,73 @@ export async function deleteTask(taskId: string): Promise<{ error?: string }> {
 
   revalidatePath('/dashboard')
   revalidatePath('/tasks')
+  revalidatePath('/areas')
+
+  if (existingTask?.area_id) {
+    revalidatePath(`/areas/${existingTask.area_id}`)
+  }
+
+  return {}
+}
+
+export async function createSubtask(
+  taskId: string,
+  title: string
+): Promise<{ data?: Subtask; error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Não autenticado' }
+
+  const { data: task } = await supabase
+    .from('tasks')
+    .select('id')
+    .eq('id', taskId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!task) return { error: 'Tarefa não encontrada' }
+
+  const { data, error } = await supabase
+    .from('subtasks')
+    .insert({ task_id: taskId, title: title.trim(), completed: false })
+    .select()
+    .single()
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/tasks')
+  revalidatePath(`/tasks/${taskId}`)
+
+  return { data: (data as Subtask) ?? undefined }
+}
+
+export async function deleteSubtask(subtaskId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Não autenticado' }
+
+  const { data: subtask } = await supabase
+    .from('subtasks')
+    .select('id, task_id, tasks!inner(user_id)')
+    .eq('id', subtaskId)
+    .eq('tasks.user_id', user.id)
+    .single()
+
+  if (!subtask) return { error: 'Subtarefa não encontrada' }
+
+  const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/tasks')
+  revalidatePath(`/tasks/${subtask.task_id}`)
+
   return {}
 }
 
@@ -116,6 +235,20 @@ export async function toggleSubtask(
   completed: boolean
 ): Promise<{ error?: string }> {
   const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { error: 'Não autenticado' }
+
+  const { data: subtask } = await supabase
+    .from('subtasks')
+    .select('task_id, tasks!inner(user_id)')
+    .eq('id', subtaskId)
+    .eq('tasks.user_id', user.id)
+    .single()
+
+  if (!subtask) return { error: 'Subtarefa não encontrada' }
 
   const { error } = await supabase
     .from('subtasks')
@@ -123,6 +256,9 @@ export async function toggleSubtask(
     .eq('id', subtaskId)
 
   if (error) return { error: error.message }
+
   revalidatePath('/tasks')
+  revalidatePath(`/tasks/${subtask.task_id}`)
+
   return {}
 }

@@ -6,7 +6,6 @@ import { GoalCard } from '@/components/goals/GoalCard'
 import { NewTaskSheet } from '@/components/tasks/NewTaskSheet'
 import { ArrowLeft, CheckSquare, Target } from 'lucide-react'
 import Link from 'next/link'
-import { cn } from '@/lib/utils'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -97,7 +96,7 @@ export default async function AreaDetailPage({ params }: Props) {
       {tasks.length === 0 ? (
         <div className="text-center py-10 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
           <p className="text-zinc-400 text-sm">Nenhuma tarefa nesta área</p>
-          <p className="text-xs text-zinc-300 dark:text-zinc-600 mt-1">Toque em "Nova tarefa" para adicionar</p>
+          <p className="text-xs text-zinc-300 dark:text-zinc-600 mt-1">Toque em Nova tarefa para adicionar</p>
         </div>
       ) : (
         <div className="space-y-5">

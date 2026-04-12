@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { createGoal } from '@/lib/actions/goals-areas'
-import { cn } from '@/lib/utils'
 import type { LifeArea, GoalTimeframe } from '@/types'
 
 interface Props {

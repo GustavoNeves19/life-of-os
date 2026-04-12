@@ -2,6 +2,14 @@ export type Priority = 'low' | 'medium' | 'high'
 export type TaskStatus = 'pending' | 'in_progress' | 'done'
 export type GoalTimeframe = 'short' | 'medium' | 'long'
 export type FinanceType = 'income' | 'expense'
+export type FinanceLinkKind =
+  | 'spreadsheet'
+  | 'banking'
+  | 'card'
+  | 'investments'
+  | 'bills'
+  | 'documents'
+  | 'other'
 export type AreaSlug = 'college' | 'work' | 'health' | 'personal' | 'finances' | 'goals'
 
 export interface User {
@@ -70,6 +78,17 @@ export interface FinancialEntry {
   category: string
   description?: string
   date: string
+  created_at: string
+}
+
+export interface FinanceLink {
+  id: string
+  user_id: string
+  title: string
+  url: string
+  provider?: string
+  kind: FinanceLinkKind
+  notes?: string
   created_at: string
 }
 

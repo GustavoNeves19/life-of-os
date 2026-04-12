@@ -1,10 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Plus, X, CheckSquare, DollarSign } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import {
+  EXPENSE_CATEGORIES,
+  INCOME_CATEGORIES,
+} from '@/lib/constants/finance'
+import { cn, localDateString } from '@/lib/utils'
 import { createTask } from '@/lib/actions/tasks'
 import { createFinancialEntry } from '@/lib/actions/finances'
+import type { FinanceType, Priority } from '@/types'
 
 type Mode = 'task' | 'finance'
 
@@ -12,73 +17,112 @@ export function QuickAddFAB() {
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('task')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [financeType, setFinanceType] = useState<FinanceType>('expense')
+
+  const financeCategories = useMemo(
+    () => (financeType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES),
+    [financeType]
+  )
 
   async function handleTaskSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
-    const fd = new FormData(e.currentTarget)
-    await createTask({
-      title: fd.get('title') as string,
-      priority: (fd.get('priority') as any) ?? 'medium',
-      due_date: (fd.get('due_date') as string) || undefined,
+    setError('')
+
+    const formData = new FormData(e.currentTarget)
+    const result = await createTask({
+      title: formData.get('title') as string,
+      priority: formData.get('priority') as Priority,
+      due_date: (formData.get('due_date') as string) || undefined,
     })
+
     setLoading(false)
+
+    if (result.error) {
+      setError(result.error)
+      return
+    }
+
+    e.currentTarget.reset()
     setOpen(false)
   }
 
   async function handleFinanceSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
-    const fd = new FormData(e.currentTarget)
-    await createFinancialEntry({
-      type: fd.get('type') as any,
-      amount: parseFloat(fd.get('amount') as string),
-      category: fd.get('category') as string,
-      description: (fd.get('description') as string) || undefined,
-      date: new Date().toISOString().split('T')[0],
+    setError('')
+
+    const formData = new FormData(e.currentTarget)
+    const result = await createFinancialEntry({
+      type: financeType,
+      amount: parseFloat(formData.get('amount') as string),
+      category: formData.get('category') as string,
+      description: (formData.get('description') as string) || undefined,
+      date: localDateString(),
     })
+
     setLoading(false)
+
+    if (result.error) {
+      setError(result.error)
+      return
+    }
+
+    e.currentTarget.reset()
+    setFinanceType('expense')
     setOpen(false)
+  }
+
+  function close() {
+    setOpen(false)
+    setError('')
+    setLoading(false)
+    setFinanceType('expense')
   }
 
   return (
     <>
-      {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
-          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          onClick={close}
         />
       )}
 
-      {/* Modal */}
       {open && (
-        <div className="fixed bottom-20 left-4 right-4 z-50 max-w-lg mx-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-100 dark:border-zinc-800 overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
-          {/* Tab selector */}
+        <div className="animate-in slide-in-from-bottom-4 fixed bottom-20 left-4 right-4 z-50 mx-auto max-w-lg overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-2xl duration-300 dark:border-zinc-800 dark:bg-zinc-900">
           <div className="flex border-b border-zinc-100 dark:border-zinc-800">
             <button
-              onClick={() => setMode('task')}
+              onClick={() => {
+                setMode('task')
+                setError('')
+              }}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
                 mode === 'task'
-                  ? 'text-violet-600 border-b-2 border-violet-600'
+                  ? 'border-b-2 border-violet-600 text-violet-600'
                   : 'text-zinc-400 hover:text-zinc-600'
               )}
             >
               <CheckSquare size={15} />
               Tarefa
             </button>
+
             <button
-              onClick={() => setMode('finance')}
+              onClick={() => {
+                setMode('finance')
+                setError('')
+              }}
               className={cn(
                 'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
                 mode === 'finance'
-                  ? 'text-emerald-600 border-b-2 border-emerald-600'
+                  ? 'border-b-2 border-emerald-600 text-emerald-600'
                   : 'text-zinc-400 hover:text-zinc-600'
               )}
             >
               <DollarSign size={15} />
-              Lançamento
+              Lancamento
             </button>
           </div>
 
@@ -87,68 +131,114 @@ export function QuickAddFAB() {
               <form onSubmit={handleTaskSubmit} className="space-y-3">
                 <input
                   name="title"
-                  placeholder="O que você precisa fazer?"
+                  placeholder="O que voce precisa fazer?"
                   required
                   autoFocus
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 placeholder:text-zinc-400"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                 />
+
                 <div className="flex gap-2">
                   <select
                     name="priority"
-                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    defaultValue="medium"
+                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   >
                     <option value="low">Baixa prioridade</option>
-                    <option value="medium" selected>Média prioridade</option>
+                    <option value="medium">Media prioridade</option>
                     <option value="high">Alta prioridade</option>
                   </select>
+
                   <input
                     name="due_date"
                     type="date"
-                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   />
                 </div>
+
+                {error && (
+                  <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500 dark:bg-red-950/30">
+                    {error}
+                  </p>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  className="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
                 >
                   {loading ? 'Salvando...' : 'Criar tarefa'}
                 </button>
               </form>
             ) : (
               <form onSubmit={handleFinanceSubmit} className="space-y-3">
-                <div className="flex gap-2">
-                  <select
-                    name="type"
-                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFinanceType('expense')}
+                    className={cn(
+                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      financeType === 'expense'
+                        ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                        : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'
+                    )}
                   >
-                    <option value="expense">Despesa</option>
-                    <option value="income">Receita</option>
-                  </select>
+                    Despesa
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFinanceType('income')}
+                    className={cn(
+                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      financeType === 'income'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400'
+                    )}
+                  >
+                    Receita
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
                   <input
                     name="amount"
                     type="number"
                     step="0.01"
                     placeholder="0,00"
                     required
-                    className="flex-1 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800"
                   />
+
+                  <select
+                    name="category"
+                    key={financeType}
+                    defaultValue={financeCategories[0]}
+                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800"
+                  >
+                    {financeCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <input
-                  name="category"
-                  placeholder="Categoria (ex: Alimentação)"
-                  required
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
-                />
+
                 <input
                   name="description"
-                  placeholder="Descrição (opcional)"
-                  className="w-full px-3 py-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder:text-zinc-400"
+                  placeholder="Descricao (opcional)"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800"
                 />
+
+                {error && (
+                  <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-500 dark:bg-red-950/30">
+                    {error}
+                  </p>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  className="w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
                 >
                   {loading ? 'Salvando...' : 'Registrar'}
                 </button>
@@ -158,14 +248,22 @@ export function QuickAddFAB() {
         </div>
       )}
 
-      {/* FAB Button */}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          if (open) {
+            close()
+            return
+          }
+
+          setOpen(true)
+          setMode('task')
+          setError('')
+        }}
         className={cn(
-          'fixed bottom-20 right-4 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300',
+          'fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-300',
           open
-            ? 'bg-zinc-700 rotate-45 scale-90'
-            : 'bg-violet-600 hover:bg-violet-700 hover:scale-110 active:scale-95'
+            ? 'scale-90 rotate-45 bg-zinc-700'
+            : 'bg-violet-600 hover:scale-110 hover:bg-violet-700 active:scale-95'
         )}
       >
         {open ? (
