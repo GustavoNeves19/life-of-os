@@ -15,6 +15,11 @@
   html {
     /* Prevent overscroll bounce on iOS */
     overscroll-behavior: none;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   body {
@@ -64,21 +69,19 @@
   }
 }
 
-/* Input autofill dark mode fix */
+/* Input autofill theme fix */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 30px #18181b inset !important;
-  -webkit-text-fill-color: #f4f4f5 !important;
+  -webkit-box-shadow: 0 0 0 30px #fafafa inset !important;
+  -webkit-text-fill-color: #18181b !important;
 }
 
-@media (prefers-color-scheme: light) {
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus {
-    -webkit-box-shadow: 0 0 0 30px #fafafa inset !important;
-    -webkit-text-fill-color: #18181b !important;
-  }
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px #18181b inset !important;
+  -webkit-text-fill-color: #f4f4f5 !important;
 }
 
 /* Animate in utility */

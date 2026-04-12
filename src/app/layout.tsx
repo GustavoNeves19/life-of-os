@@ -5,8 +5,10 @@ import './globals.css'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { PWARegister } from '@/components/layout/PWARegister'
 import { QuickAddFAB } from '@/components/layout/QuickAddFAB'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { getAreas } from '@/lib/actions/goals-areas'
 import { getCurrentUser } from '@/lib/auth'
+import { THEME_INIT_SCRIPT } from '@/lib/theme'
 
 export const metadata: Metadata = {
   title: 'Life OS',
@@ -52,13 +54,20 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body
         className={`${GeistSans.variable} ${GeistMono.variable} bg-zinc-50 font-sans antialiased text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50`}
       >
         <PWARegister />
 
         <div className="relative min-h-screen max-w-lg mx-auto">
-          <main className={`px-4 pt-4 ${isAuthed ? 'pb-24' : 'pb-4'}`}>{children}</main>
+          <div className="flex justify-end px-4 pb-2 pt-4 pt-safe">
+            <ThemeToggle />
+          </div>
+
+          <main className={`px-4 ${isAuthed ? 'pb-24' : 'pb-4'}`}>{children}</main>
 
           {isAuthed && (
             <>
