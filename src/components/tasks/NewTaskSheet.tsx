@@ -1,8 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { createTask } from '@/lib/actions/tasks'
+import { SuccessToast } from '@/components/shared/SuccessToast'
 import type { LifeArea, Priority, TaskStatus } from '@/types'
 
 interface Props {
@@ -13,9 +15,29 @@ interface Props {
 }
 
 export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Props) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  function showSuccess(message: string) {
+    setSuccessMessage(message)
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+
+    timeoutRef.current = setTimeout(() => {
+      setSuccessMessage('')
+      timeoutRef.current = null
+    }, 2500)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -39,11 +61,16 @@ export function NewTaskSheet({ areas, defaultAreaId, areaName, areaColor }: Prop
       return
     }
 
+    e.currentTarget.reset()
     setOpen(false)
+    showSuccess('Tarefa cadastrada com sucesso.')
+    router.refresh()
   }
 
   return (
     <>
+      {successMessage && <SuccessToast message={successMessage} />}
+
       <button
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white transition-colors shadow-sm"

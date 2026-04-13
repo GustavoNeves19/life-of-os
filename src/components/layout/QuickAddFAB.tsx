@@ -1,11 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, X, CheckSquare, DollarSign } from 'lucide-react'
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
 } from '@/lib/constants/finance'
+import { SuccessToast } from '@/components/shared/SuccessToast'
 import { cn, localDateString } from '@/lib/utils'
 import { createTask } from '@/lib/actions/tasks'
 import { createFinancialEntry } from '@/lib/actions/finances'
@@ -18,16 +20,36 @@ interface Props {
 }
 
 export function QuickAddFAB({ areas }: Props) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>('task')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [financeType, setFinanceType] = useState<FinanceType>('expense')
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const financeCategories = useMemo(
     () => (financeType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES),
     [financeType]
   )
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
+  }, [])
+
+  function showSuccess(message: string) {
+    setSuccessMessage(message)
+
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+
+    timeoutRef.current = setTimeout(() => {
+      setSuccessMessage('')
+      timeoutRef.current = null
+    }, 2500)
+  }
 
   async function handleTaskSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -37,6 +59,7 @@ export function QuickAddFAB({ areas }: Props) {
     const formData = new FormData(e.currentTarget)
     const result = await createTask({
       title: formData.get('title') as string,
+      description: (formData.get('description') as string) || undefined,
       priority: formData.get('priority') as Priority,
       status: formData.get('status') as TaskStatus,
       area_id: (formData.get('area_id') as string) || undefined,
@@ -52,6 +75,8 @@ export function QuickAddFAB({ areas }: Props) {
 
     e.currentTarget.reset()
     setOpen(false)
+    showSuccess('Tarefa cadastrada com sucesso.')
+    router.refresh()
   }
 
   async function handleFinanceSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -78,6 +103,8 @@ export function QuickAddFAB({ areas }: Props) {
     e.currentTarget.reset()
     setFinanceType('expense')
     setOpen(false)
+    showSuccess('Lancamento registrado com sucesso.')
+    router.refresh()
   }
 
   function close() {
@@ -89,6 +116,8 @@ export function QuickAddFAB({ areas }: Props) {
 
   return (
     <>
+      {successMessage && <SuccessToast message={successMessage} />}
+
       {open && (
         <div
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
@@ -134,56 +163,91 @@ export function QuickAddFAB({ areas }: Props) {
 
           <div className="p-4">
             {mode === 'task' ? (
-              <form onSubmit={handleTaskSubmit} className="space-y-3">
-                <input
-                  name="title"
-                  placeholder="O que voce precisa fazer?"
-                  required
-                  autoFocus
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
-                />
-
-                <div className="flex gap-2">
-                  <select
-                    name="priority"
-                    defaultValue="medium"
-                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
-                  >
-                    <option value="low">Baixa prioridade</option>
-                    <option value="medium">Media prioridade</option>
-                    <option value="high">Alta prioridade</option>
-                  </select>
-
+              <form onSubmit={handleTaskSubmit} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Titulo *
+                  </label>
                   <input
-                    name="due_date"
-                    type="date"
-                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    name="title"
+                    placeholder="O que voce precisa fazer?"
+                    required
+                    autoFocus
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <select
-                    name="status"
-                    defaultValue="pending"
-                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
-                  >
-                    <option value="pending">Pendente</option>
-                    <option value="in_progress">Em andamento</option>
-                    <option value="done">Concluida</option>
-                  </select>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Descricao
+                  </label>
+                  <textarea
+                    name="description"
+                    rows={2}
+                    placeholder="Detalhes opcionais..."
+                    className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                  />
+                </div>
 
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Area da vida
+                  </label>
                   <select
                     name="area_id"
                     defaultValue=""
-                    className="flex-1 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
                   >
-                    <option value="">Sem area</option>
+                    <option value="">Sem area especifica</option>
                     {areas.map((area) => (
                       <option key={area.id} value={area.id}>
                         {area.icon} {area.name}
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      Prioridade
+                    </label>
+                    <select
+                      name="priority"
+                      defaultValue="medium"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    >
+                      <option value="low">Baixa</option>
+                      <option value="medium">Media</option>
+                      <option value="high">Alta</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      defaultValue="pending"
+                      className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                    >
+                      <option value="pending">Pendente</option>
+                      <option value="in_progress">Em andamento</option>
+                      <option value="done">Concluida</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    Prazo
+                  </label>
+                  <input
+                    name="due_date"
+                    type="date"
+                    className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:border-zinc-700 dark:bg-zinc-800"
+                  />
                 </div>
 
                 {error && (
@@ -195,7 +259,7 @@ export function QuickAddFAB({ areas }: Props) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-lg bg-violet-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
+                  className="w-full rounded-xl bg-violet-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-violet-700 disabled:opacity-50"
                 >
                   {loading ? 'Salvando...' : 'Criar tarefa'}
                 </button>
